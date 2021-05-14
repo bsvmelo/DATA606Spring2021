@@ -1,0 +1,277 @@
+---
+title: "DATA 606 Data Project Proposal"
+author: "Bruno de Melo"
+output:
+  pdf_document: default
+  html_document:
+    includes:
+      in_header: header.html
+    css: ./lab.css
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+### Data Preparation
+
+Proposal is to analyze the relationship between deaths by firearms, either by self-harm or by physical violence, and gun ownership. Geographical scope is within the states in the United States of America.
+
+Two datasets are required:
+1. Number of deaths by firearm (self-harm or by physical violence) by state.
+2. State-Level Firearm Ownership by state.
+
+None of the databases are directly accessible but rather require either a query to be built (dataset 1) or need to be downloaded in **zip** format (dataset 2).
+
+Both datasets are include in the my github link: https://github.com/bsvmelo/DATA_606
+
+Dataset 1 is available via a query that has to be built via a website, source is here: http://ghdx.healthdata.org/gbd-results-tool?params=gbd-api-2019-permalink/e89460e52883bcb25c4e9cdacb72cc09
+
+Dataset 2 is provided here https://www.rand.org/pubs/tools/TL354.html and a zipped Excel file is available for downloading.
+
+
+```{r setup, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+# load data
+library(tidyverse)
+# install.packages("strucchange")
+# install.packages("corrr")
+# install.packages("fastDummies")
+# library("strucchange")
+# library("corrr")
+# library("fastDummies")
+
+#Dataset1: csv file
+ds1_loc<-"https://raw.githubusercontent.com/bsvmelo/DATA_606/main/IHME-GBD_2019_DATA-f5fee567-1.csv"
+
+ds1<-data.frame(read.csv(ds1_loc))
+
+#Dataset2: xlsx file
+#https://github.com/bsvmelo/DATA_606/blob/main/TL-354-State-Level%20Estimates%20of%20Household%20Firearm%20Ownership.xlsx
+
+#Dataset2: csv file
+ds2_loc<-"https://raw.githubusercontent.com/bsvmelo/DATA_606/main/State-Level_Estimates_of_Household_Firearm_Ownership.csv"
+
+ds2<-data.frame(read.csv(ds2_loc))
+
+
+#check states are similar in two files
+states_1<-ds1 %>%
+  group_by(location_name)  %>%
+  summarise ()
+
+#nrow(states_1)
+
+states_2<-ds2  %>%
+  group_by(STATE)  %>%
+  summarise ()
+#nrow(states_2)
+
+#Number of states are not the same, but this will not pose a problem given that ds1 has one more states than ds2.
+
+
+```
+
+
+### Research question 
+
+**You should phrase your research question in a way that matches up with the scope of inference your dataset allows for.**
+
+- Is there a relationship between number of deaths by firearm with the amount of firearm in that state? Does it change over time?
+- Is there a relationship between number of deaths by firearm with restriction of gun ownership / permit?
+
+
+### Cases 
+
+**What are the cases, and how many are there?**
+
+- Case 1: More firearms mean more deaths
+- Case 2: Ownership restriction means less deaths
+
+
+### Data collection 
+
+**Describe the method of data collection.**
+
+Data was collected primarily from readily available datasets.
+
+
+### Type of study 
+
+**What type of study is this (observational/experiment)?**
+
+This is an observational study in that it draws from data obtain via surveys and by actual cause of deaths.
+
+
+### Data Source 
+
+**If you collected the data, state self-collected. If not, provide a citation/link.**
+
+Dataset 1: Number of deaths by firearm (self-harm or by physical violence) by state.
+Source: Available via a query that has to be built via a website, source is here: http://ghdx.healthdata.org/gbd-results-tool?params=gbd-api-2019-permalink/e89460e52883bcb25c4e9cdacb72cc09
+
+Data was obtained on Global Health Data Exchange (GHDx), which is maintaining by the University of Washington. The Institute for Health Metrics and Evaluation (IHME) is an independent global health research center at the University of Washington. The Global Health Data Exchange (GHDx) is a data catalog created and supported by IHME.
+
+
+Dataset 2: State-Level Firearm Ownership by state. Source is provided here https://www.rand.org/pubs/tools/TL354.html and a zipped Excel file is available for downloading.
+
+Data was obtained on The RAND Corporation website, RAND is a research organization that develops solutions to public policy challenges to help make communities throughout the world safer and more secure, healthier and more prosperous. RAND is nonprofit, nonpartisan, and committed to the public interest.
+
+
+### Dependent Variable
+
+**What is the response variable? Is it quantitative or qualitative?**
+
+- Response variable is number of deaths. It is quantitative.
+
+
+### Independent Variable
+
+**You should have two independent variables, one quantitative and one qualitative.**
+
+- Independent variable are number of guns (quantitative) and gun ownership (qualitative).
+
+
+### Relevant summary statistics 
+
+**Provide summary statistics for each the variables. Also include appropriate visualizations related to your research question (e.g. scatter plot, boxplots, etc). This step requires the use of R, hence a code chunk is provided below. Insert more code chunks as needed.**
+
+```{r}
+#scatter plots
+
+#Number of deaths
+
+deaths<-ds1 %>%
+  filter(year <= 2016, measure_name == "Deaths", metric_id==1) %>%
+  select(year, location_name,cause_id,cause_name,val) 
+
+#Gun ownership
+n_guns<-ds2 %>%
+  filter(Year >= 1990) %>%
+  select(Year, STATE,HFR,universl,permit) 
+
+#Merging
+df<-left_join(deaths, n_guns, by = c("year" = "Year", "location_name"="STATE"))
+colnames(df)<-c("Year","State","cause_id","Cause_Death","No_Deaths","Ownership","Universal","permit")
+df$cause_id<-as.factor(df$cause_id)
+# df$Year<-as.factor(df$Year)
+df$State<-as.factor(df$State)
+
+#aggregating sum of deaths
+df_agg<-df%>%filter(!is.na(Ownership))%>%
+          group_by(State, Year,Ownership,permit,Universal)%>%
+          summarise(No_Deaths = sum(No_Deaths))
+
+#cause of death 721
+df_721<-df%>%filter(!is.na(Ownership), cause_id==721)%>%
+          group_by(State, Year,Ownership,permit,Universal)
+
+#cause of death 725
+df_725<-df%>%filter(!is.na(Ownership), cause_id==725)%>%
+          group_by(State, Year,Ownership,permit,Universal)
+
+
+#dat frame aggregated cause of death
+df_agg%>% 
+  ggplot(aes(Year,(No_Deaths))) +geom_point(size=1)+facet_wrap(~State,scales='free') +
+  stat_smooth()
+
+
+#Visualization: cause of death
+df%>% 
+  ggplot(aes(cause_id,No_Deaths,colour=Cause_Death)) +geom_col()+facet_wrap(~State,scales='free') +theme(legend.position = "bottom")
+
+
+#Visualization: Violence by firearm
+df%>% filter(cause_id==725)%>%
+  ggplot(aes(Year,(No_Deaths))) +geom_point(size=1)+facet_wrap(~State,scales='free') +
+  stat_smooth()
+
+#Visualization: Self-harm by firearm
+df%>% filter(cause_id==721)%>%
+  ggplot(aes(Year,(No_Deaths))) +geom_point(size=1)+facet_wrap(~State,scales='free')
+
+
+#Visualization: aggregated deaths by ownership
+df_agg%>% 
+  ggplot(aes(No_Deaths,Ownership)) +geom_point(size=1)+facet_wrap(~State,scales='free')
+
+#Visualization: Self-harm by firearm
+df%>% filter(cause_id==721)%>%
+  ggplot(aes(No_Deaths,Ownership)) +geom_point(size=1)+facet_wrap(~State,scales='free')
+
+#Visualization: Self-harm by firearm
+df%>% filter(cause_id==725)%>%
+  ggplot(aes(No_Deaths,Ownership)) +geom_point(size=1)+facet_wrap(~State,scales='free')
+
+
+
+#subset of States with changes to permit and universal
+
+permit<-c("California","Connecticut","Maryland","Nebraska","North Carolina","Missouri")
+universal<-c("California","Colorado","Connecticut","Delaware","Maryland","Pennsylvania","Washington","Oregon","Missouri","Tennessee")
+
+df_725_permit<-df%>% filter(cause_id==725, State %in% c("California","Connecticut","Maryland","Nebraska","North Carolina","Missouri"))
+
+df_725_uni<-df%>% filter(cause_id==725, State %in% c("California","Colorado","Connecticut","Delaware","Maryland","Pennsylvania","Washington","Oregon","Missouri","Tennessee"))
+
+df_721_permit<-df%>% filter(cause_id==721, State %in%  c("California","Connecticut","Maryland","Nebraska","North Carolina","Missouri"))
+
+df_721_uni<-df%>% filter(cause_id==721, State %in% c("California","Colorado","Connecticut","Delaware","Maryland","Pennsylvania","Washington","Oregon","Missouri","Tennessee"))
+
+df_permit<-df%>% filter(State %in% c("California","Connecticut","Maryland","Nebraska","North Carolina","Missouri"))%>%group_by(State, Year,Ownership,permit,Universal)%>%summarise(No_Deaths = sum(No_Deaths))
+
+df_uni<-df%>% filter(State %in% c("California","Colorado","Connecticut","Delaware","Maryland","Pennsylvania","Washington","Oregon","Missouri","Tennessee"))%>%group_by(State, Year, Ownership,permit,Universal)%>%summarise(No_Deaths = sum(No_Deaths))
+
+#dummy
+dt_permit <- dummy_cols(df_permit, select_columns = 'State')
+
+df_permit_Missouri<-df_permit%>% filter(State %in% c("Missouri"))  
+
+df_ca<-df_permit %>% filter(State == "California")
+
+# fs<-Fstats(No_Deaths ~ 1, data=df_725)
+# 
+# ## plot the F statistics
+# plot(fs, alpha = 0.01)
+# ## plot F statistics with aveF boundary
+# plot(fs, aveF = TRUE)
+# ## perform the expF test
+# sctest(fs, type = "expF")
+# lines(breakpoints(fs))
+
+#polynomia
+# reg<-lm(No_Deaths ~  poly(Ownership, 2, raw = TRUE) + permit ,df_725_permit)
+# summary(reg)
+
+reg<-lm(No_Deaths ~  Ownership + permit + Universal + State + Year -1 ,data = df_agg)
+summary(reg)
+
+reg<-lm(No_Deaths ~  Ownership + permit + Universal + State + Year -1 ,data = df_721)
+summary(reg)
+
+reg<-lm(No_Deaths ~  Ownership + permit + Universal + State + Year -1 ,data = df_725)
+summary(reg)
+
+
+# reg<-lm(No_Deaths ~ Ownership + State + Universal + permit,df_721)
+# summary(reg)
+
+
+
+```
+
+It looks like there may be a relationship, although it looks weak. Regression is given below:
+
+```{r}
+reg<-lm(No_Deaths ~ Ownership,df)
+summary(reg)
+```
+
+As seen, intercept and slope are statistically significance and $R^2$ is low at 0.2. As a first approach, this is an valuable result. Relationship may be stronger when ownership data is not aggregated out but rather analyzed state by state.
+
+
+
+
+
