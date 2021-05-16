@@ -29,12 +29,19 @@ In light of gun availability that varies by state and by year, analysis focused 
 
 - Is there a relationship between the number of deaths by firearm with ownership restriction such as permit requirement and background check?
 
+```{r setup, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
+library(tidyverse)
+
+```
+
+
 
 ### Part 1 - Introduction
 
 
 
-Objective is to analyze the relationship between deaths by firearms, either by self-harm or by physical violence, and gun ownership. Geographical scope is within the states in the United States of America.
+Objective is to analyze the relationship between gun ownership and gun violence, either by self-harm or by physical violence. 
+
 
 
 
@@ -58,11 +65,11 @@ Dataset 2: State-Level Firearm Ownership by state. Source is provided here https
 
 Data was obtained on The RAND Corporation website, RAND is a research organization that develops solutions to public policy challenges to help make communities throughout the world safer and more secure, healthier and more prosperous. RAND is nonprofit, nonpartisan, and committed to the public interest.
 
+Data summary of these two datasets is below.
 
-
-```{r}
+```{r data load, echo=TRUE, results='hold', warning=FALSE, message=FALSE}
 # load data
-library(tidyverse)
+
 #Dataset1: csv file
 ds1_loc<-"https://raw.githubusercontent.com/bsvmelo/DATA_606/main/IHME-GBD_2019_DATA-f5fee567-1.csv"
 ds1<-data.frame(read.csv(ds1_loc))
@@ -72,21 +79,94 @@ ds1<-data.frame(read.csv(ds1_loc))
 ds2_loc<-"https://raw.githubusercontent.com/bsvmelo/DATA_606/main/State-Level_Estimates_of_Household_Firearm_Ownership.csv"
 ds2<-data.frame(read.csv(ds2_loc))
 #check states are similar in two files
-states_1<-ds1 %>%
-group_by(location_name)  %>%
-summarise ()
-#nrow(states_1)
-states_2<-ds2  %>%
-group_by(STATE)  %>%
-summarise ()
-#nrow(states_2)
-#Number of states are not the same, but this will not pose a problem given that ds1 has one more states than ds2.
+# states_1<-ds1 %>%
+# group_by(location_name)  %>%
+# summarise ()
+# #nrow(states_1)
+# states_2<-ds2  %>%
+# group_by(STATE)  %>%
+# summarise ()
+# #nrow(states_2)
+# #Number of states are not the same, but this will not pose a problem given that ds1 has one more states than ds2.
+
+summary(ds1)
+summary(ds2)
+
+```
+
+These two datasets are merged into one dataset - code in the chunk below. It contains 2,700 observations across 10 variables, as described below:
+
+`year`: Describes Year (filtered to show common date between `ds1` and `ds2` datasets).
+`State`: Describes State.
+`cause_id`: Cause of death index.
+`Cause_death`: Describes cause of death with two factors: Physical violence by firearm or Self-harm by firearm.
+`No_Deaths`: Describes number of deaths.
+`Ownership`: Describes percentage of gun ownership.
+`Universal`: Describes gun restriction in relation required universal background check.
+`permit`: Describes gun restriction in relation required permit to carry gun.
+`abb`: Describes state abbreviation.
+`region`: Describes State region.
+
+
+```{r data prep 1}
+
+#Data set Number of deaths
+
+deaths<-ds1 %>%
+filter(year <= 2016, measure_name == "Deaths", metric_id==1, location_name!="District of Columbia") %>%
+select(year, location_name,cause_id,cause_name,val)
+
+deaths_total<-ds1 %>%
+filter(measure_name == "Deaths", metric_id==1, location_name!="District of Columbia") %>%
+select(year, location_name,cause_id,cause_name,val)
+
+#Data set Gun ownership
+n_guns<-ds2 %>%
+  filter(Year >= 1990) %>%
+  select(Year, STATE,HFR,universl,permit) 
+
+n_guns_total<-ds2 %>%
+  select(Year, STATE,HFR,universl,permit)
+
+#Merging
+df<-left_join(deaths, n_guns, by = c("year" = "Year", "location_name"="STATE"))
+colnames(df)<-c("Year","State","cause_id","Cause_Death","No_Deaths","Ownership","Universal","permit")
+
+df$cause_id<-as.factor(df$cause_id)
+df$State<-as.factor(df$State)
+df$abb<-state.abb[df$State]
+df$region<-state.region[df$State]
+
+summary(df)
+```
+
+
+### Part 3 - Exploratory data analysis
+
+
+
+Variable `Cause_Death` contains two levels as described above. A dataset `df_agg` is created to display
+
+
+```{r data prep 2}
+#aggregating sum of deaths
+df_agg<-df%>%filter(!is.na(Ownership))%>%
+          group_by(State, Year,Ownership,permit,Universal)%>%
+          summarise(No_Deaths = sum(No_Deaths))
+
+#cause of death 721
+df_721<-df%>%filter(!is.na(Ownership), cause_id==721)%>%
+group_by(State, Year,Ownership,permit,Universal)
+
+#cause of death 725
+df_725<-df%>%filter(!is.na(Ownership), cause_id==725)%>%
+group_by(State, Year,Ownership,permit,Universal)
 ```
 
 
 
 
-### Part 3 - Exploratory data analysis
+
 
 
 ### Part 4 - Inference
