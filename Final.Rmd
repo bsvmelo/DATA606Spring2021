@@ -1,0 +1,51 @@
+---
+title: "DATA 606 Final Project - Relationship between Gun Ownership and Gun Violence"
+author: "Bruno de Melo"
+output:
+  pdf_document: default
+  html_document:
+    includes:
+      in_header: header.html
+    css: ./lab.css
+    highlight: pygments
+    theme: cerulean
+    toc: true
+    toc_float: true
+editor_options: 
+  chunk_output_type: console
+---
+
+### - Abstract
+
+Objective is to analyze the relationship between deaths by firearms, either by self-harm or by physical violence, and gun ownership and gun availability in the United States of America.
+
+Gun ownership in America is a very controversial topic, especially considering its constitutional status. This leads to a political debate that in most cases lacks factual basis based on data. Debate tends to heat up after mass shootings but it is also noteworthy that more than half of gun deaths are from suicides.
+
+The USA possesses the highest level of gun ownership among the developed nations, around 1.2 per resident. Death by firearms when counted as a single category - which includes suicide, accidents and homicides -  kills about 40,000 American a year. This number is comparable to death by vehicle accident (39,000) or pancreatic cancer (45,000).
+
+In light of gun availability that varies by state and by year, analysis focused on answering these questions:
+
+- Is there a relationship between the number of deaths by firearm with the amount of firearms in a state? Does it change over time?
+
+- Is there a relationship between the number of deaths by firearm with ownership restriction such as permit requirement and background check?
+
+
+### Part 1 - Introduction
+
+
+### Part 2 - Data
+
+
+### Part 3 - Exploratory data analysis
+
+
+### Part 4 - Inference
+
+
+### Part 5 - Conclusion
+
+
+### References
+
+
+### Appendix (optional)
