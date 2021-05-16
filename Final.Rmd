@@ -244,6 +244,44 @@ ggplot(df,aes(x=Year, y=No_Deaths,group=Year))+geom_boxplot()
 ```
 
 
+Below we check how law restrictions have changed over time by state. Two variables are associated with law restrictions:
+`Universal`: Describes gun restriction in relation required universal background check.
+`permit`: Describes gun restriction in relation required permit to carry gun.
+
+These are boolean variables in that a $0$ means no restriction and a $1$ means restriction. Table below shows whether states are becoming more restrictive (changing from 1 to 0) or less restrictive (changing from 1 to 0) or have not change their laws over time.
+
+
+\begin{table}[]
+\begin{tabular}{llll}
+\multicolumn{4}{l}{Universal Background Check}                       \\
+\multicolumn{2}{l}{No Restriction} & \multicolumn{2}{l}{Restriction} \\
+No Change     & Less Restrictive   & No Change    & More Restrictive \\
+All others    & Missouri           & Hawaii       & California       \\
+              & Tennessee          & Iowa         & Colorado         \\
+              &                    & Michigan     & Connecticut      \\
+              &                    & New York     & Delaware         \\
+              &                    & Rhode Island & Maryland         \\
+              &                    &              & Oregon           \\
+              &                    &              & Pennsylvania     \\
+              &                    &              & Washington      
+\end{tabular}
+\end{table}
+
+\begin{table}[]
+\begin{tabular}{llll}
+\multicolumn{4}{l}{Permit to carry gun}                               \\
+\multicolumn{2}{l}{No Restriction} & \multicolumn{2}{l}{Restriction}  \\
+No Change     & Less Restrictive   & No Change     & More Restrictive \\
+All others    & Missouri           & Hawaii        & California       \\
+              &                    & Illinois      & Connecticut      \\
+              &                    & Iowa          & Maryland         \\
+              &                    & Massachusetts & Nebraska         \\
+              &                    & Michigan      & North Carolina   \\
+              &                    & New Jersey    &                  \\
+              &                    & New York      &                  \\
+              &                    & Rhode Island  &                 
+\end{tabular}
+\end{table}
 
 #### Relationship between gun ownership rate, number of deaths and restriction laws
 
@@ -278,13 +316,22 @@ ggplot(aes(x=Ownership,y=total,group=abb,colour =abb, label=abb))+geom_point(siz
 
 
 
-```{r}
-#aggregating sum of deaths
-df_agg<-df%>%group_by(State, Year,Ownership,permit,Universal)%>%
-          summarise(No_Deaths = sum(No_Deaths))
 
-boxplot(No_Deaths ~ Year, data=df_agg, main="Deaths by Year", xlab="Year", ylab="Number of Deaths", col=rainbow(length(2016:1990)))
-```
+
+
+### Part 4 - Inference
+
+As seen in the previous section, four variables will be analysed through regression analysis in order to determine whether they are statistically related to the number of deaths: `ownership`, `permit`, `universal`, and `year`.
+
+Dataset is in fact a collection of 50 time series (one per state) of ownership rate data and restriction laws.
+
+
+
+We will regression analysis to answer the questions
+
+- Is there a relationship between the number of deaths by firearm with the amount of firearms in a state? Does it change over time?
+
+- Is there a relationship between the number of deaths by firearm with ownership restriction such as permit requirement and background check?
 
 
 In order to give a context to the 
