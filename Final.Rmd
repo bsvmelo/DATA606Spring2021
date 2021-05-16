@@ -31,7 +31,7 @@ In light of gun availability that varies by state and by year, analysis focused 
 
 ```{r setup, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
 library(tidyverse)
-
+library(leaflet)
 ```
 
 
@@ -143,7 +143,151 @@ summary(df)
 
 ### Part 3 - Exploratory data analysis
 
+As a context setting to the analysis, picture below depicts the ownership rate across states in 2016. We observe high ownership rates in the North Central and South regions, while lower rates are observed in the West and in the Northeast.
 
+```{r}
+states <- map_data("state")
+df_2016<-df%>%filter(!is.na(Ownership), Year==2016)%>%
+select(State,Ownership)%>%
+mutate(Ownership = round(Ownership*100,1))
+df_2016$State <- tolower(df_2016$State)
+
+ggplot(df_2016, aes(map_id = State)) + geom_map(aes(fill = Ownership), map = states) +
+expand_limits(x = states$long, y = states$lat)  + scale_fill_gradient(name = "Ownership-%", low = "white", high = "red") +
+labs(title = "US Gun Ownership by States, 2016", x = "longitude", y = "latitude",
+caption = "source: https://www.rand.org/pubs/tools/TL354.html") +
+coord_fixed(1.3) +
+theme(panel.background = element_blank())
+
+
+```
+
+Over time, ownership rate has been following in average and across the states, as shown below. Red line indicates the national average.
+
+
+```{r}
+n_guns_total%>%group_by(Year)%>%summarise(mean=mean(HFR)*100)%>%
+          ggplot(mapping=aes(x=Year,y=mean)) +  geom_line(colour="red", size=2) +
+        geom_line(n_guns_total,mapping=aes(x=Year,y=HFR*100, group=STATE),colour="gray80") +
+        labs(title = "Gun Ownership by States since 1980, in % of population", x = "Year", y = "% Ownership Rate")
+```
+
+
+In terms of number of deaths over time in aggregate for all states, chart below depicts the historical trend since 1990. Dataset contains information whether death was caused by self-harm (suicide) or by physical violence (variable `Cause_Death`).
+
+Three conclusions can be drawn:
+1: Overall trend indicates increasing deaths, especially after 2000.
+2: Proportion of self-harm has sharply increased since 2005.
+3: Proportion of non-self-harm decreased substantially from 1990 to 2000.
+
+```{r}
+a<-deaths_total%>%group_by(year)%>%summarise(sum1=sum(val))
+b<-deaths_total%>%group_by(year,cause_name)%>%summarise(sum2=sum(val))
+
+# b<-deaths_total%>%group_by(year,cause_name)%>%summarise(sum2=sum(val))%>%mutate(percent = sum2 / sum(sum2) * 100)
+
+#%>%mutate(percentage = sum2 / sum(sum2))
+#percent = value / sum(value) * 100
+
+ggplot(a,mapping=aes(x=year,y=sum1)) + geom_line() + labs(title = "Number of Death by firearms since 1990", x = "Year", y="No of deaths") +geom_line(b,mapping=aes(x=year,y=sum2, color=cause_name))+guides(color=guide_legend("Cause of Death"))
+
+# ggplot(a,mapping=aes(x=year,y=sum1)) + geom_line(colour="green") + labs(title = "Number of Death by firearms since 1990", x = "Year", y="No of deaths") +
+#   geom_area(b,mapping=aes(year,sum2,fill=cause_name),position="stack") +guides(color=guide_legend("Cause of Death"))
+
+
+
+```
+
+
+Descriptive statistics on ownership data, shows that the national average since 1990 displays bi-modal distribution with distinct group of states with high and low rate of ownership. National mean is 42% with a standard deviation of 4.5%.
+
+```{r}
+rate_nat<-df%>%group_by(Year)%>%summarise(mean=mean(Ownership)*100)
+ggplot(rate_nat,mapping=aes(x=mean))+geom_histogram(bins=15)
+summary(rate_nat)
+```
+
+Boxplot per region is displayed below. Northeast region has the lowest median over time while South region has the highest.
+
+```{r}
+ggplot(df,aes(x=region, y=Ownership,group=region))+geom_boxplot()
+
+```
+
+Boxplot per year is displayed below. As evidenced in the aggregate chart above, median ownership has decreased overtime.
+
+```{r}
+ggplot(df,aes(x=Year, y=Ownership,group=Year))+geom_boxplot()
+
+```
+
+Descriptive statistics on number of deaths, shows that the national average since 1990 shows a quasi normal distribution. National mean is 34k with a standard deviation of 2,175.
+
+```{r}
+death_nat<-df%>%group_by(Year)%>%summarise(mean=mean(No_Deaths)*100)
+ggplot(death_nat,mapping=aes(x=mean))+geom_histogram(bins=15)
+summary(death_nat)
+```
+
+Boxplot per region is also displayed below. Lower median value is observed in the Northeast while the higher is observed in the South.
+
+```{r}
+ggplot(df,aes(x=region, y=No_Deaths,group=region))+geom_boxplot()
+
+```
+
+Boxplot per year is displayed below. As evidenced in the aggregate chart above, median number of deaths has increased overtime.
+
+```{r}
+ggplot(df,aes(x=Year, y=No_Deaths,group=Year))+geom_boxplot()
+
+```
+
+
+
+#### Relationship between gun ownership rate, number of deaths and restriction laws
+
+in this section, the relationship between gun ownership rate, number of deaths and restriction laws are visually explored.
+
+Starting with ownership vs restriction laws by state as of 2016. Restriction law here refers to requirement of having a permit to carry a gun. Chart below is jittered for ease of visualization, hence the duplication. In general, the more restrictive the laws the lower is the ownership rate.
+
+```{r}
+set.seed(123)
+
+df%>%filter(!is.na(Ownership), Year==2016)%>%
+select(abb,Ownership, No_Deaths, permit, Universal,region)%>%
+mutate(Ownership = round(Ownership*100,1))%>%
+ggplot(aes(jitter(as.numeric(as.factor(permit)),0.5),Ownership,group=abb,colour =abb, label=abb))+geom_point(size=2, alpha=0)+geom_text(aes(label=abb),hjust=0, vjust=0.1, size=3)+ theme(legend.position = "none") +labs(title = "Ownership rate vs Restriction Laws", x = "Restriction Law", y="% Ownership Rate") + annotate("text", x = 1.1, y = 25, label = "Less restrictive", colour="Green")+ annotate("text", x = 1.9, y = 50, label = "More restrictive",colour="Orange")+ theme(axis.ticks = element_blank(),axis.text.x=element_blank())
+
+```
+
+
+Next, the relationship between number of deaths and ownership. Apart from the three outliers, CA, FL and TX, chart indicates an indirect relationship between number of deaths and ownership rate.
+
+```{r}
+set.seed(123)
+
+df%>%filter(!is.na(Ownership), Year==2016)%>%
+group_by(abb)%>%
+mutate(Ownership = round(Ownership*100,1))%>%
+summarize(total=sum(No_Deaths),Ownership=mean(Ownership))%>%
+ggplot(aes(x=Ownership,y=total,group=abb,colour =abb, label=abb))+geom_point(size=2, alpha=0)+geom_text(aes(label=abb),hjust=0, vjust=0.1, size=3)+ theme(legend.position = "none") +labs(title = "Number of Deaths vs Ownership rate", x = "% Ownership Rate", y="Number of Deaths") + annotate("text", x = 20, y = 2000, label = "More restrictive", colour="Green")+ annotate("text", x = 50, y = 2000, label = "Less restrictive",colour="Orange")
+
+```
+
+
+
+
+```{r}
+#aggregating sum of deaths
+df_agg<-df%>%group_by(State, Year,Ownership,permit,Universal)%>%
+          summarise(No_Deaths = sum(No_Deaths))
+
+boxplot(No_Deaths ~ Year, data=df_agg, main="Deaths by Year", xlab="Year", ylab="Number of Deaths", col=rainbow(length(2016:1990)))
+```
+
+
+In order to give a context to the 
 
 Variable `Cause_Death` contains two levels as described above. A dataset `df_agg` is created to display
 
