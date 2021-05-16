@@ -33,7 +33,57 @@ In light of gun availability that varies by state and by year, analysis focused 
 ### Part 1 - Introduction
 
 
+
+Objective is to analyze the relationship between deaths by firearms, either by self-harm or by physical violence, and gun ownership. Geographical scope is within the states in the United States of America.
+
+
+
 ### Part 2 - Data
+
+
+Two datasets are used:
+1. Number of deaths by firearm (self-harm or by physical violence) by state.
+2. State-Level Firearm Ownership by state.
+
+None of the databases are directly accessible but rather require either a query to be built (dataset 1) or need to be downloaded in **zip** format (dataset 2).
+
+Both datasets are include in the my github link: https://github.com/bsvmelo/DATA_606
+
+Dataset 1: Number of deaths by firearm (self-harm or by physical violence) by state. It is available via a query that has to be built via a website, source is here: http://ghdx.healthdata.org/gbd-results-tool?params=gbd-api-2019-permalink/e89460e52883bcb25c4e9cdacb72cc09
+
+Data was obtained on Global Health Data Exchange (GHDx), which is maintaining by the University of Washington. The Institute for Health Metrics and Evaluation (IHME) is an independent global health research center at the University of Washington. The Global Health Data Exchange (GHDx) is a data catalog created and supported by IHME.
+
+
+Dataset 2: State-Level Firearm Ownership by state. Source is provided here https://www.rand.org/pubs/tools/TL354.html and a zipped Excel file is available for downloading.
+
+Data was obtained on The RAND Corporation website, RAND is a research organization that develops solutions to public policy challenges to help make communities throughout the world safer and more secure, healthier and more prosperous. RAND is nonprofit, nonpartisan, and committed to the public interest.
+
+
+
+```{r}
+# load data
+library(tidyverse)
+#Dataset1: csv file
+ds1_loc<-"https://raw.githubusercontent.com/bsvmelo/DATA_606/main/IHME-GBD_2019_DATA-f5fee567-1.csv"
+ds1<-data.frame(read.csv(ds1_loc))
+#Dataset2: xlsx file
+#https://github.com/bsvmelo/DATA_606/blob/main/TL-354-State-Level%20Estimates%20of%20Household%20Firearm%20Ownership.xlsx
+#Dataset2: csv file
+ds2_loc<-"https://raw.githubusercontent.com/bsvmelo/DATA_606/main/State-Level_Estimates_of_Household_Firearm_Ownership.csv"
+ds2<-data.frame(read.csv(ds2_loc))
+#check states are similar in two files
+states_1<-ds1 %>%
+group_by(location_name)  %>%
+summarise ()
+#nrow(states_1)
+states_2<-ds2  %>%
+group_by(STATE)  %>%
+summarise ()
+#nrow(states_2)
+#Number of states are not the same, but this will not pose a problem given that ds1 has one more states than ds2.
+```
+
+
 
 
 ### Part 3 - Exploratory data analysis
