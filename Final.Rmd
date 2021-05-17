@@ -34,7 +34,9 @@ library(tidyverse)
 library(leaflet)
 library(ggpubr)
 library(plm)
+library(dotwhisker)
 install.packages("plm")
+install.packages("dotwhisker")
 ```
 
 
@@ -350,11 +352,13 @@ Regression equation is of the form:
 
 \[
 
-\widehat{DeathsTotal} = \beta_0 + \beta_1\times (Ownership_{ij}) + \beta_2\times (Permit_{ij}) + \beta_3\times (Universal_{ij}) + \gamma_j + \varepsilon_{ij}
+\widehat{DeathsTotal} = \beta_0 + \beta_1\times (Ownership_{ij}) + \beta_2\times (Permit_{ij}) + \beta_3\times (Universal_{ij}) + \beta_4\times (Year_{ij}) + \gamma_j + \varepsilon_{ij}
 
 \]
 
 where \gamma_j the *state fixed effect*.
+
+Results are presented in the table below; results for the 'State' variable are suppressed for better interpretation.
 
 ```{r}
 #aggregating sum of deaths
@@ -363,16 +367,26 @@ df_agg<-df%>%filter(!is.na(Ownership))%>%
           summarise(No_Deaths = sum(No_Deaths))%>%
           mutate(rate= Ownership*100)
 
-d_total<-lm(No_Deaths ~ rate + (permit) + (Universal) + + Year+  State  -1, df_agg)
-summary(d_total)
-#plot(d_total)
+d_total<-lm(No_Deaths ~ rate + (permit) + (Universal) + Year + State  -1, df_agg)
+
+m4_df <- coef(summary(d_total)) %>% 
+  data.frame() %>% 
+  tibble::rownames_to_column("term") %>%
+  rename(estimate = Estimate, std.error = Std..Error)
+(d_total_results<-m4_df[m4_df$term=='rate' | m4_df$term=='permit' | m4_df$term=='Universal' | m4_df$term=='Year',  ])
+
 ```
 
 
 
+Resulting equation is:
+\[
 
+\widehat{DeathsTotal} = 7.04\times (Ownership) -150.5\times (Permit) + 3.62\times (Year) + \gamma_j
 
+\]
 
+It means that for a 1% increase in gun ownership rate, number of deaths increases by 7 people. Sign of 'permit` variable is negative, meaning that states with a restriction on carrying gun with a permit see a decrease in the number of deaths of 150 people. The `Universal` variable is not significant, while `Year` variable is significant and its meaning suggests that the number of deaths increases over time, as highly in a previous chart.
 
 
 
