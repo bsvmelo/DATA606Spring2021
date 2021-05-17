@@ -474,9 +474,9 @@ m6_df <- coef(summary(d_725)) %>%
   data.frame() %>% 
   tibble::rownames_to_column("term") %>%
   rename(estimate = Estimate, std.error = Std..Error)
-#(d_725_results<-m6_df[m6_df$term=='rate' | m6_df$term=='permit' | m6_df$term=='Universal' | m6_df$term=='Year' ,  ])
+d_725_results<-m6_df[m6_df$term=='rate' | m6_df$term=='permit' | m6_df$term=='Universal' | m6_df$term=='Year' ,  ]
 
-(d_725_results<-m6_df[m6_df$Pr...t..<=0.1,  ])
+(d_725_results_st<-m6_df[m6_df$Pr...t..<=0.1,  ])
 
 
 ```
@@ -511,12 +511,24 @@ step$anova # display results
 ```
 
 
+#####Putting all together
+
 
 ```{r}
-df_725<-df%>%filter(!is.na(Ownership), cause_id==725)%>%
-group_by(State, Year,Ownership,permit,Universal)%>%
-          mutate(rate= Ownership*100)
+
+d_total_results<-d_total_results%>% mutate(model = "Aggregate",p_value=ifelse(Pr...t..<0.001,0,round(Pr...t..,2)))
+
+d_721_results<-d_721_results%>% mutate(model = "Suicide",p_value=ifelse(Pr...t..<0.001,0,round(Pr...t..,2)))
+d_725_results<-d_725_results%>% mutate(model = "Violence",p_value=ifelse(Pr...t..<0.001,0,round(Pr...t..,2)))
+
+all_models <- rbind(d_total_results,d_721_results,d_725_results)
+all_models%>%filter(p_value<0.05)%>%
+dwplot() + theme_bw() + xlab("Coefficient Estimate") + ylab("") +
+    ggtitle("Gun Violence Regression Models", subtitle = "with significant coefficents")
+
+
 ```
+
 
 
 
