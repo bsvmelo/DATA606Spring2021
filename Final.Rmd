@@ -35,16 +35,21 @@ Main conclusion are that higher rates of gun ownership, are associated with more
 
 
 ```{r setup, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
-requiredPackages = c('tidyverse','leaflet','ggpubr','dotwhisker')
-for(p in requiredPackages){
-  if(!require(p,character.only = TRUE)) install.packages(p)
-  library(p,character.only = TRUE)
-}
-# library(tidyverse)
-# library(leaflet)
-# library(ggpubr)
-# library(dotwhisker)
-# library(MASS)
+
+# requiredPackages = c('tidyverse','leaflet','ggpubr','dotwhisker', 'MASS')
+# for(p in requiredPackages){
+#   if(!require(p,character.only = TRUE)) install.packages(p)
+#   library(p,character.only = TRUE)
+# }
+
+library(tidyverse)
+library(leaflet)
+library(ggpubr)
+library(dotwhisker)
+library(broom)
+#library(MASS)
+# install.packages("glmmTMB", type="source")
+# library(glmmTMB)
 ```
 
 
@@ -131,23 +136,26 @@ These two datasets are merged into one dataset - code in the chunk below. It con
 
 #Data set Number of deaths
 
-deaths<-ds1%>%filter(year <= 2016, measure_name == "Deaths", metric_id==1, location_name!="District of Columbia")%>%
-select(year,location_name,cause_id,cause_name,val)
+deaths1<-ds1%>%filter(year <= 2016, measure_name == "Deaths", metric_id==1, location_name!="District of Columbia")
+deaths1<-deaths1[, c(13,4,9,10,14)]
+  
+  #select(year,location_name,cause_id,cause_name,val)
 
 deaths_total<-ds1 %>%
-filter(measure_name == "Deaths", metric_id==1, location_name!="District of Columbia") %>%
-select(year,location_name,cause_id,cause_name,val)
+filter(measure_name == "Deaths", metric_id==1, location_name!="District of Columbia")
+deaths_total<-deaths_total[, c(13,4,9,10,14)]
+#select(year,location_name,cause_id,cause_name,val)
 
 #Data set Gun ownership
 n_guns<-ds2 %>%
-  filter(Year >= 1990) %>%
-  select(Year, STATE,HFR,universl,permit) 
+   dplyr::filter(Year >= 1990) %>%
+   dplyr::select(Year, STATE,HFR,universl,permit) 
 
 n_guns_total<-ds2 %>%
-  select(Year, STATE,HFR,universl,permit)
+   dplyr::select(Year, STATE,HFR,universl,permit)
 
 #Merging
-df<-left_join(deaths, n_guns, by = c("year" = "Year", "location_name"="STATE"))
+df<-left_join(deaths1, n_guns, by = c("year" = "Year", "location_name"="STATE"))
 colnames(df)<-c("Year","State","cause_id","Cause_Death","No_Deaths","Ownership","Universal","permit")
 
 df$cause_id<-as.factor(df$cause_id)
@@ -398,7 +406,7 @@ plot(d_total)
 stepwise selection (forward, backward, both) is performed using the `stepAIC` function from the *MASS* package. Function performs stepwise model selection by exact AIC. Final model suggested is the same as found above, without the `universal` variable.
 
 ```{r}
-step <- stepAIC(d_total, direction="both")
+step <- MASS::stepAIC(d_total, direction="both")
 step$anova # display results
 ```
 
@@ -460,7 +468,7 @@ plot(d_721)
 Stepwise selection (forward, backward, both) is performed using the `stepAIC` function from the *MASS* package. Final model suggested is the same as found above, without the `universal` variable.
 
 ```{r}
-step <- stepAIC(d_721, direction="both")
+step <- MASS::stepAIC(d_721, direction="both")
 step$anova # display results
 ```
 
@@ -521,7 +529,7 @@ plot(d_725)
 Stepwise selection (forward, backward, both) is performed using the `stepAIC` function from the *MASS* package. Final model suggested is the same as found above, without the `universal` variable.
 
 ```{r}
-step <- stepAIC(d_725, direction="both")
+step <- MASS::stepAIC(d_725, direction="both")
 step$anova # display results
 ```
 
@@ -540,7 +548,7 @@ d_725_results<-d_725_results%>% mutate(model = "Violence",p_value=ifelse(Pr...t.
 
 all_models <- rbind(d_total_results,d_721_results,d_725_results)
 all_models%>%filter(p_value<0.05)%>%
-dwplot() + theme_bw() + xlab("Coefficient Estimate") + ylab("") +
+dotwhisker::dwplot() + theme_bw() + xlab("Coefficient Estimate") + ylab("") +
     ggtitle("Gun Violence Regression Models", subtitle = "with significant coefficents")
 
 
