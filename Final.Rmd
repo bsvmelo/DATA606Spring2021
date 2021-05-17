@@ -17,35 +17,51 @@ editor_options:
 
 ### - Abstract
 
-Objective is to analyze the relationship between deaths by firearms, either by self-harm or by physical violence, and gun ownership and gun availability in the United States of America.
+Objective is to analyze the relationship between deaths by firearms, either by self-harm or by physical violence, gun ownership and gun restriction laws in the United States of America.
 
 Gun ownership in America is a very controversial topic, especially considering its constitutional status. This leads to a political debate that in most cases lacks factual basis based on data. Debate tends to heat up after mass shootings but it is also noteworthy that more than half of gun deaths are from suicides.
 
 The USA possesses the highest level of gun ownership among the developed nations, around 1.2 per resident. Death by firearms when counted as a single category - which includes suicide, accidents and homicides -  kills about 40,000 American a year. This number is comparable to death by vehicle accident (39,000) or pancreatic cancer (45,000).
 
-In light of gun availability that varies by state and by year, analysis focused on answering these questions:
+In light of gun availability that varies by state and by year, this project used a collection of 50 time series of ownership rate data and restriction laws. Given the time dimension aspect, panel data or fixed effect regression analysis technique was utilized. This was not covered in class but it can be run and results analysed using a $R$ function that we are familiar with.
+
+The analysis focused on answering these questions:
 
 - Is there a relationship between the number of deaths by firearm with the amount of firearms in a state? Does it change over time?
 
 - Is there a relationship between the number of deaths by firearm with ownership restriction such as permit requirement and background check?
 
+Main conclusion are that higher rates of gun ownership, are associated with more deaths. Restrictive laws like a permit requirement to carry guns is positively related to the decrease in number of deaths. Relationship between restrictive laws like universal background check and number of deaths shows a counter-intuitive result. And finally, overall deaths driven primarily by suicides are increasing over the years. 
+
+
 ```{r setup, echo=TRUE, results='hide', warning=FALSE, message=FALSE}
-library(tidyverse)
-library(leaflet)
-library(ggpubr)
-library(dotwhisker)
-library(MASS)
+requiredPackages = c('tidyverse','leaflet','ggpubr','dotwhisker')
+for(p in requiredPackages){
+  if(!require(p,character.only = TRUE)) install.packages(p)
+  library(p,character.only = TRUE)
+}
+# library(tidyverse)
+# library(leaflet)
+# library(ggpubr)
+# library(dotwhisker)
+# library(MASS)
 ```
 
 
 
 ### Part 1 - Introduction
 
+Objective is to analyze the relationship between deaths by firearms, either by self-harm or by physical violence, gun ownership and gun restriction laws in the United States of America.
 
+Gun ownership in America is a very controversial topic, especially considering its constitutional status. This leads to a political debate that in most cases lacks factual basis based on data. Debate tends to heat up after mass shootings but it is also noteworthy that more than half of gun deaths are from suicides.
 
-Objective is to analyze the relationship between gun ownership and gun violence, either by self-harm or by physical violence. 
+The USA possesses the highest level of gun ownership among the developed nations, around 1.2 per resident. Death by firearms when counted as a single category - which includes suicide, accidents and homicides -  kills about 40,000 American a year. This number is comparable to death by vehicle accident (39,000) or pancreatic cancer (45,000).
 
+The analysis focused on answering these questions:
 
+- Is there a relationship between the number of deaths by firearm with the amount of firearms in a state? Does it change over time?
+
+- Is there a relationship between the number of deaths by firearm with ownership restriction such as permit requirement and background check?
 
 
 ### Part 2 - Data
@@ -115,13 +131,12 @@ These two datasets are merged into one dataset - code in the chunk below. It con
 
 #Data set Number of deaths
 
-deaths<-ds1 %>%
-filter(year <= 2016, measure_name == "Deaths", metric_id==1, location_name!="District of Columbia") %>%
-select(year, location_name,cause_id,cause_name,val)
+deaths<-ds1%>%filter(year <= 2016, measure_name == "Deaths", metric_id==1, location_name!="District of Columbia")%>%
+select(year,location_name,cause_id,cause_name,val)
 
 deaths_total<-ds1 %>%
 filter(measure_name == "Deaths", metric_id==1, location_name!="District of Columbia") %>%
-select(year, location_name,cause_id,cause_name,val)
+select(year,location_name,cause_id,cause_name,val)
 
 #Data set Gun ownership
 n_guns<-ds2 %>%
@@ -342,7 +357,7 @@ Regression equation is of the form:
 
 where \gamma_j the *state fixed effect*.
 
-Results are presented in the table below; results for the 'State' variable are suppressed for better interpretation - available in the Appendix.
+Results are presented in the table below; results for the 'State' variable are suppressed for better interpretation - available in the Appendix. Note that variable name `ownership` was mutate to `rate`.
 
 ```{r}
 #aggregating sum of deaths
@@ -390,7 +405,7 @@ step$anova # display results
 
 
 
-#### Cause of Death Analysis
+#### Analysis of distinct cause of deaths 
 
 Considering that the categorical variable `cause_deaths` has two levels, two regression analysis will be run, following the same methodology as described above.
 
@@ -511,13 +526,10 @@ step$anova # display results
 ```
 
 
-#####Putting all together
 
-Conclusion:
-1- The higher the rate of ownership, more deaths are predicted
-2- Restrictive laws like a permit requirement to carry guns is positively related to the decrease in number of deaths.
-3- Relationship between restrictive laws like universal background check and number of deaths shows a counter-intuitive result.
-4- Suicides are increasing over the years.
+### Part 5 - Conclusion
+
+Chart below summarizes the findings of the three regression models. Only the significant coefficients are displayed.
 
 ```{r}
 
@@ -534,27 +546,69 @@ dwplot() + theme_bw() + xlab("Coefficient Estimate") + ylab("") +
 
 ```
 
+Main conclusions are:
+
+1- On all three models, higher rates of gun ownership, are associated with more deaths.
+
+2- On all three models, restrictive laws like a permit requirement to carry guns is positively related to the decrease in number of deaths.
+
+3- In one of the models, relationship between restrictive laws like universal background check and number of deaths shows a counter-intuitive result.
+
+4- Overall deaths driven primarily by suicides are increasing over the years. Number of deaths by gun violence seems to be decreasing but that was not captured in our model.
 
 
+This analysis is relevant because it tries to clarify through data analytics some aspects of the relationship between gun ownership, law restriction and deaths. One of the finding of the analysis is that more availability of guns is directly related to more deaths, specially linked to suicides.
 
-We will regression analysis to answer the questions
+Another finding is that not all restrictive laws are effective, at least in our model. While requirement for a gun permit leads to lower number of deaths, the same is not true for universal background check.
 
-- Is there a relationship between the number of deaths by firearm with the amount of firearms in a state? Does it change over time?
-
-- Is there a relationship between the number of deaths by firearm with ownership restriction such as permit requirement and background check?
-
-
-
-
-
-
-
-
-
-### Part 5 - Conclusion
-
-
-### References
+As a first attempt in answering very tricky questions due to they being related to constitutional rights, diverse political agenda, and polarized public opinion, this analysis demonstrates that some meaningful insights can be drawn. However, there are limitations that if overcome may enhance the model predictability. Other variables could be incorporated into the model, such as for example socioeconomic variables like level of education, unemployment rate, GDP growth. Moreover, a investigation could be pursued on the causes of the big shift in 2000 in the number deaths.
 
 
 ### Appendix (optional)
+
+Complete results of *Aggregate Analysis* regression.
+
+Regression equation is of the form:
+
+\[
+
+\widehat{DeathsTotal} = \beta_0 + \beta_1\times (Ownership_{ij}) + \beta_2\times (Permit_{ij}) + \beta_3\times (Universal_{ij}) + \beta_4\times (Year_{ij}) + \gamma_j + \varepsilon_{ij}
+
+\]
+
+where \gamma_j the *state fixed effect*.
+
+
+```{r}
+summary(d_total)
+```
+
+Complete results of *Deaths by suicide* regression.
+
+Regression equation is of the form:
+
+\[
+
+\widehat{Deaths by Suicide} = \beta_0 + \beta_1\times (Ownership_{ij}) + \beta_2\times (Permit_{ij}) + \beta_3\times (Universal_{ij}) + \beta_4\times (Year_{ij}) + \gamma_j + \varepsilon_{ij}
+
+\]
+
+
+```{r}
+summary(d_721)
+```
+
+Complete results of *Deaths by violence* regression.
+
+Regression equation is of the form:
+
+\[
+
+\widehat{Deaths by Violence} = \beta_0 + \beta_1\times (Ownership_{ij}) + \beta_2\times (Permit_{ij}) + \beta_3\times (Universal_{ij}) + \beta_4\times (Year_{ij}) + \gamma_j + \varepsilon_{ij}
+
+\]
+
+```{r}
+summary(d_725)
+```
+
