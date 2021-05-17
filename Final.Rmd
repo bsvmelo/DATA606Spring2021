@@ -513,6 +513,11 @@ step$anova # display results
 
 #####Putting all together
 
+Conclusion:
+1- The higher the rate of ownership, more deaths are predicted
+2- Restrictive laws like a permit requirement to carry guns is positively related to the decrease in number of deaths.
+3- Relationship between restrictive laws like universal background check and number of deaths shows a counter-intuitive result.
+4- Suicides are increasing over the years.
 
 ```{r}
 
