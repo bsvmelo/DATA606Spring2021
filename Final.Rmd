@@ -33,10 +33,8 @@ In light of gun availability that varies by state and by year, analysis focused 
 library(tidyverse)
 library(leaflet)
 library(ggpubr)
-library(plm)
 library(dotwhisker)
-install.packages("plm")
-install.packages("dotwhisker")
+library(MASS)
 ```
 
 
@@ -189,19 +187,10 @@ Three conclusions can be drawn:
 a<-deaths_total%>%group_by(year)%>%summarise(sum1=sum(val))
 b<-deaths_total%>%group_by(year,cause_name)%>%summarise(sum2=sum(val))
 
-# b<-deaths_total%>%group_by(year,cause_name)%>%summarise(sum2=sum(val))%>%mutate(percent = sum2 / sum(sum2) * 100)
 
-#%>%mutate(percentage = sum2 / sum(sum2))
-#percent = value / sum(value) * 100
-
-# ggplot(a,mapping=aes(x=year,y=sum1)) + geom_line() + labs(title = "Number of Death by firearms since 1990", x = "Year", y="No of deaths") +geom_line(b,mapping=aes(x=year,y=sum2, color=cause_name))+guides(color=guide_legend("Cause of Death"))
-
-# ggplot(a,mapping=aes(x=year,y=sum1)) + geom_line(colour="green") + labs(title = "Number of Death by firearms since 1990", x = "Year", y="No of deaths") +
-#   geom_area(b,mapping=aes(year,sum2,fill=cause_name),position="stack") +guides(color=guide_legend("Cause of Death"))
 
 p1<-ggplot(a,mapping=aes(x=year,y=sum1)) + geom_line() + labs(title = "Number of Death by firearms since 1990", x = "Year", y="No of deaths")
 p2<-ggplot(b)+geom_line(b,mapping=aes(x=year,y=sum2, color=cause_name))+guides(color=guide_legend("Cause of Death")) + labs(title = "", x = "Year", y="")
-
 ggpubr::ggarrange(p1, p2, ncol = 2, nrow = 1)
 
 ```
@@ -322,11 +311,6 @@ ggplot(aes(x=Ownership,y=total,group=abb,colour =abb, label=abb))+geom_point(siz
 ```
 
 
-
-
-
-
-
 ### Part 4 - Inference
 
 As seen in the previous section, four variables will be analysed through regression analysis in order to determine whether they are statistically related to the number of deaths: `ownership`, `permit`, `universal`, and `year`.
@@ -358,7 +342,7 @@ Regression equation is of the form:
 
 where \gamma_j the *state fixed effect*.
 
-Results are presented in the table below; results for the 'State' variable are suppressed for better interpretation.
+Results are presented in the table below; results for the 'State' variable are suppressed for better interpretation - available in the Appendix.
 
 ```{r}
 #aggregating sum of deaths
@@ -379,16 +363,160 @@ m4_df <- coef(summary(d_total)) %>%
 
 
 
-Resulting equation is:
+Resulting equation is below, and has an adjusted R-squared of 0.98:
 \[
 
 \widehat{DeathsTotal} = 7.04\times (Ownership) -150.5\times (Permit) + 3.62\times (Year) + \gamma_j
 
 \]
 
-It means that for a 1% increase in gun ownership rate, number of deaths increases by 7 people. Sign of 'permit` variable is negative, meaning that states with a restriction on carrying gun with a permit see a decrease in the number of deaths of 150 people. The `Universal` variable is not significant, while `Year` variable is significant and its meaning suggests that the number of deaths increases over time, as highly in a previous chart.
+It means that for a 1% increase in gun ownership rate, number of deaths increases by 7 people. Sign of `permit` variable is negative, meaning that states with a restriction on carrying gun with a permit see a decrease in the number of deaths of 150 people. The `Universal` variable is not significant, while `Year` variable is significant and its meaning suggests that the number of deaths increases over time, as highlighted in a previous chart. Result on all states are significant.
+
+Diagnostic plots are show below. Residuals are slightly not well behaved, showing a trend in the first chart, Residuals vs Fitted. The normal Q-Q plot suggests that the residual are not normal, maybe due to outliers.
+
+```{r}
+# diagnostic plots
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
+plot(d_total)
+```
+
+stepwise selection (forward, backward, both) is performed using the `stepAIC` function from the *MASS* package. Function performs stepwise model selection by exact AIC. Final model suggested is the same as found above, without the `universal` variable.
+
+```{r}
+step <- stepAIC(d_total, direction="both")
+step$anova # display results
+```
 
 
+
+
+#### Cause of Death Analysis
+
+Considering that the categorical variable `cause_deaths` has two levels, two regression analysis will be run, following the same methodology as described above.
+
+*Deaths by suicide*
+
+Regression equation is of the form:
+
+\[
+
+\widehat{Deaths by Suicide} = \beta_0 + \beta_1\times (Ownership_{ij}) + \beta_2\times (Permit_{ij}) + \beta_3\times (Universal_{ij}) + \beta_4\times (Year_{ij}) + \gamma_j + \varepsilon_{ij}
+
+\]
+
+Results are presented in the table below; results for the 'State' variable are suppressed for better interpretation - available in the Appendix.
+
+```{r}
+#cause of death 721
+df_721<-df%>%filter(!is.na(Ownership), cause_id==721)%>%
+group_by(State, Year,Ownership,permit,Universal)%>%
+          mutate(rate= Ownership*100)
+
+
+d_721<-lm(No_Deaths ~ rate + (permit) + (Universal) + Year + State  -1, df_721)
+
+m5_df <- coef(summary(d_721)) %>% 
+  data.frame() %>% 
+  tibble::rownames_to_column("term") %>%
+  rename(estimate = Estimate, std.error = Std..Error)
+(d_721_results<-m5_df[m5_df$term=='rate' | m5_df$term=='permit' | m5_df$term=='Universal' | m5_df$term=='Year',  ])
+
+```
+
+
+
+Resulting equation is below, and has an adjusted R-squared of 0.99:
+\[
+
+\widehat{DeathsTotal} = 2.3\times (Ownership) -48.8\times (Permit) + 3.62\times (Year) + \gamma_j
+
+\]
+
+Result means that for a 1% increase in gun ownership rate, number of suicides increase by 2 people. Sign of `permit` variable is negative, meaning that states with a restriction on carrying gun with a permit see a decrease in the number of suicides by 49 people. The `Universal` variable is not significant, while `Year` variable is significant and its meaning suggests that the number of suicides increases over time, as highlighted in a previous chart. Result on all states are significant.
+
+Diagnostic plots are show below. Residuals are slightly not well behaved, showing a trend in the first chart, Residuals vs Fitted. The normal Q-Q plot suggests that the residual are not normal, maybe due to outliers.
+
+```{r}
+# diagnostic plots
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
+plot(d_721)
+```
+
+Stepwise selection (forward, backward, both) is performed using the `stepAIC` function from the *MASS* package. Final model suggested is the same as found above, without the `universal` variable.
+
+```{r}
+step <- stepAIC(d_721, direction="both")
+step$anova # display results
+```
+
+*Deaths by violence*
+
+Regression equation is of the form:
+
+\[
+
+\widehat{Deaths by Violence} = \beta_0 + \beta_1\times (Ownership_{ij}) + \beta_2\times (Permit_{ij}) + \beta_3\times (Universal_{ij}) + \beta_4\times (Year_{ij}) + \gamma_j + \varepsilon_{ij}
+
+\]
+
+Results are presented in the table below; results for the 'State' variable are suppressed for better interpretation - available in the Appendix.
+
+```{r}
+#cause of death 721
+df_725<-df%>%filter(!is.na(Ownership), cause_id==725)%>%
+group_by(State, Year,Ownership,permit,Universal)%>%
+          mutate(rate= Ownership*100)
+
+
+d_725<-lm(No_Deaths ~ rate + (permit) + (Universal) + Year + State  -1, df_725)
+
+m6_df <- coef(summary(d_725)) %>% 
+  data.frame() %>% 
+  tibble::rownames_to_column("term") %>%
+  rename(estimate = Estimate, std.error = Std..Error)
+#(d_725_results<-m6_df[m6_df$term=='rate' | m6_df$term=='permit' | m6_df$term=='Universal' | m6_df$term=='Year' ,  ])
+
+(d_725_results<-m6_df[m6_df$Pr...t..<=0.1,  ])
+
+
+```
+
+
+
+Resulting equation is below, and has an adjusted R-squared of 0.95:
+\[
+
+\widehat{DeathsTotal} = 4.7\times (Ownership) -101.6\times (Permit) + 36\times (Universal) + \gamma_j
+
+\]
+
+Result means that for a 1% increase in gun ownership rate, number of deaths increase by 5 people. Sign of `permit` variable is negative, meaning that states with a restriction on carrying gun with a permit see a decrease in the number of deaths by 102 people. The `Universal` variable is significant at th 95% level, and indicates states that require a background check see an increase in deaths by 37 people, which seems to be a contracting result. Variable `Year` is not significant.
+
+Only 10 states show statistical significance at least the 10% level, differently from the previous two regressions. Given the positive signal, this means that number of deaths by gun violence increases over time in these states.
+
+
+Diagnostic plots are show below. Residuals are slightly better behaved, showing no trend in the first chart, Residuals vs Fitted. The normal Q-Q plot suggests that the residual are not normal, maybe due to outliers.
+
+```{r}
+# diagnostic plots
+layout(matrix(c(1,2,3,4),2,2)) # optional 4 graphs/page
+plot(d_725)
+```
+
+Stepwise selection (forward, backward, both) is performed using the `stepAIC` function from the *MASS* package. Final model suggested is the same as found above, without the `universal` variable.
+
+```{r}
+step <- stepAIC(d_725, direction="both")
+step$anova # display results
+```
+
+
+
+```{r}
+df_725<-df%>%filter(!is.na(Ownership), cause_id==725)%>%
+group_by(State, Year,Ownership,permit,Universal)%>%
+          mutate(rate= Ownership*100)
+```
 
 
 
@@ -399,33 +527,11 @@ We will regression analysis to answer the questions
 - Is there a relationship between the number of deaths by firearm with ownership restriction such as permit requirement and background check?
 
 
-In order to give a context to the 
-
-Variable `Cause_Death` contains two levels as described above. A dataset `df_agg` is created to display
-
-
-```{r data prep 2}
-#aggregating sum of deaths
-df_agg<-df%>%filter(!is.na(Ownership))%>%
-          group_by(State, Year,Ownership,permit,Universal)%>%
-          summarise(No_Deaths = sum(No_Deaths))
-
-#cause of death 721
-df_721<-df%>%filter(!is.na(Ownership), cause_id==721)%>%
-group_by(State, Year,Ownership,permit,Universal)
-
-#cause of death 725
-df_725<-df%>%filter(!is.na(Ownership), cause_id==725)%>%
-group_by(State, Year,Ownership,permit,Universal)
-```
 
 
 
 
 
-
-
-### Part 4 - Inference
 
 
 ### Part 5 - Conclusion
